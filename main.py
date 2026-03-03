@@ -1,6 +1,8 @@
 import asyncio
 import logging
+import os
 import colorlog
+from aiohttp import web
 from telegram.ext import Application
 from src.config import config
 from src.state_manager import init_db
@@ -25,24 +27,44 @@ def setup_logging():
     logging.getLogger("telegram").setLevel(logging.WARNING)
 
 
-def main():
+async def main():
     setup_logging()
     logger = logging.getLogger(__name__)
     logger.info("Запуск бота «Справочная Коломны»...")
     config.display()
 
-    asyncio.run(init_db())
+    await init_db()
     logger.info("База данных инициализирована.")
 
+    # Health-check сервер для Render.com (запускается в том же event loop — нет race condition)
+    port = int(os.getenv("PORT", 0))
+    if port:
+        http_app = web.Application()
+
+        async def health(request):
+            return web.Response(text="OK")
+
+        http_app.router.add_get("/", health)
+        http_app.router.add_get("/health", health)
+        runner = web.AppRunner(http_app)
+        await runner.setup()
+        site = web.TCPSite(runner, "0.0.0.0", port)
+        await site.start()
+        logger.info(f"Health-check сервер запущен на порту {port}")
+
+    # Telegram бот
     app = Application.builder().token(config.CITIZEN_BOT_TOKEN).build()
     setup_application(app)
 
-    logger.info("Бот запущен.")
-    app.run_polling(
-        allowed_updates=["message", "callback_query"],
-        drop_pending_updates=True,
-    )
+    async with app:
+        await app.start()
+        await app.updater.start_polling(
+            allowed_updates=["message", "callback_query"],
+            drop_pending_updates=True,
+        )
+        logger.info("Бот запущен.")
+        await asyncio.sleep(float("inf"))
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
