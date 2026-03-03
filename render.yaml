@@ -1,9 +1,8 @@
 services:
-  - type: web
+  - type: worker
     name: kolomna-bot
-    runtime: python
+    runtime: docker
     plan: free
-    buildCommand: pip install -r requirements.txt
     startCommand: python main.py
     envVars:
       - key: CITIZEN_BOT_TOKEN
@@ -16,5 +15,3 @@ services:
         sync: false
       - key: GROQ_MODEL
         value: llama-3.3-70b-versatile
-      - key: WEBHOOK_URL
-        sync: false

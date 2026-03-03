@@ -1,0 +1,12 @@
+.env
+.env.*
+bot.db
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+.git/
+.gitignore
+README.md
+skills/
+ИИ агент - Телеграм парсер/
