@@ -256,6 +256,6 @@ def setup_application(app: Application):
     app.add_handler(CommandHandler("start", cmd_start))
     app.add_handler(CommandHandler("help", cmd_help))
     app.add_handler(CommandHandler("reset", cmd_reset))
-    app.add_handler(CommandHandler("новый", cmd_reset))
+    app.add_handler(CommandHandler("new", cmd_reset))
     app.add_handler(CallbackQueryHandler(handle_callback))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
