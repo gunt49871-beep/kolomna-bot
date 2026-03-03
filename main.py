@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 import colorlog
 from telegram.ext import Application
 from src.config import config
@@ -30,7 +31,6 @@ async def main():
     logger = logging.getLogger(__name__)
 
     logger.info("Запуск бота «Справочная Коломны»...")
-    logger.info("Конфигурация:")
     config.display()
 
     await init_db()
@@ -39,8 +39,26 @@ async def main():
     app = Application.builder().token(config.CITIZEN_BOT_TOKEN).build()
     setup_application(app)
 
-    logger.info("Бот запущен. Начинаю polling...")
-    await app.run_polling(allowed_updates=["message", "callback_query"], drop_pending_updates=True)
+    webhook_url = os.getenv("WEBHOOK_URL", "")
+
+    if webhook_url:
+        # Продакшн: webhook-режим (Render.com, любой сервер с HTTPS)
+        port = int(os.getenv("PORT", 8080))
+        logger.info(f"Запуск в webhook-режиме: {webhook_url} (порт {port})")
+        await app.run_webhook(
+            listen="0.0.0.0",
+            port=port,
+            webhook_url=webhook_url,
+            allowed_updates=["message", "callback_query"],
+            drop_pending_updates=True,
+        )
+    else:
+        # Локально: polling-режим (для разработки и тестирования)
+        logger.info("Запуск в polling-режиме (локально)...")
+        await app.run_polling(
+            allowed_updates=["message", "callback_query"],
+            drop_pending_updates=True,
+        )
 
 
 if __name__ == "__main__":
