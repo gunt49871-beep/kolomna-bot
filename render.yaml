@@ -18,5 +18,3 @@ services:
         value: llama-3.3-70b-versatile
       - key: WEBHOOK_URL
         sync: false
-      - key: PORT
-        value: 10000
