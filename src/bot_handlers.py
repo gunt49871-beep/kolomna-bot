@@ -14,16 +14,18 @@ from src.config import config
 from src.state_manager import get_state, save_state, reset_state, add_to_history
 from src.ai_engine import get_ai_response
 from src import appeals as appeal_module
+from src.pdf_generator import generate_pdf
 
 logger = logging.getLogger(__name__)
 
 APPEAL_BUTTON = "📨 Оставить обращение"
+PDF_BUTTON = "📄 Образец заявления"
 FAILED_ATTEMPTS_THRESHOLD = 2
 
 MAIN_KEYBOARD = ReplyKeyboardMarkup(
-    [[KeyboardButton(APPEAL_BUTTON)]],
+    [[KeyboardButton(APPEAL_BUTTON), KeyboardButton(PDF_BUTTON)]],
     resize_keyboard=True,
-    input_field_placeholder="Задайте вопрос или оставьте обращение...",
+    input_field_placeholder="Задайте вопрос или выберите действие...",
 )
 
 WELCOME_TEXT = (
@@ -86,6 +88,10 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if text == APPEAL_BUTTON:
         await _start_appeal(update, user.id)
+        return
+
+    if text == PDF_BUTTON:
+        await _show_pdf_menu(update)
         return
 
     state = await get_state(user.id)
@@ -180,6 +186,25 @@ async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             )
         return
 
+    if data.startswith("pdf_"):
+        pdf_type = data[4:]
+        try:
+            pdf_bytes, filename = generate_pdf(pdf_type)
+            await query.message.reply_document(
+                document=pdf_bytes,
+                filename=filename,
+                caption=(
+                    "📄 Образец заявления готов.\n\n"
+                    "_Распечатайте, заполните от руки и подайте в соответствующий орган._"
+                ),
+                parse_mode=ParseMode.MARKDOWN,
+            )
+            await query.edit_message_reply_markup(reply_markup=None)
+        except Exception as e:
+            logger.error("PDF generation error: %s", e)
+            await query.edit_message_text("⚠️ Не удалось сформировать PDF. Попробуйте позже.")
+        return
+
     if data == "appeal_cancel":
         state = await get_state(user.id)
         state["appeal_step"] = None
@@ -250,6 +275,19 @@ async def _process_appeal_step(update: Update, state: dict, text: str):
             "Пожалуйста, воспользуйтесь кнопками ✅ *Отправить* или ❌ *Отмена* выше.",
             parse_mode=ParseMode.MARKDOWN,
         )
+
+
+async def _show_pdf_menu(update: Update):
+    await update.message.reply_text(
+        "📄 *Образцы заявлений*\n\nВыберите нужный тип документа:",
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("📨 Обращение (ФЗ-59)", callback_data="pdf_fz59")],
+            [InlineKeyboardButton("🏗 Заявление на земельный участок", callback_data="pdf_land")],
+            [InlineKeyboardButton("🏪 Заявление на включение в НТО", callback_data="pdf_nto")],
+            [InlineKeyboardButton("📜 Заявление о расселении из аварийного жилья", callback_data="pdf_resettlement")],
+        ]),
+    )
 
 
 def setup_application(app: Application):
