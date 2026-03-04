@@ -1,4 +1,3 @@
-import asyncio
 import logging
 import colorlog
 from telegram.ext import Application
@@ -31,10 +30,16 @@ def main():
     logger.info("Запуск бота «Справочная Коломны»...")
     config.display()
 
-    asyncio.run(init_db())
-    logger.info("База данных инициализирована.")
+    async def on_startup(application: Application) -> None:
+        await init_db()
+        logger.info("База данных инициализирована.")
 
-    app = Application.builder().token(config.CITIZEN_BOT_TOKEN).build()
+    app = (
+        Application.builder()
+        .token(config.CITIZEN_BOT_TOKEN)
+        .post_init(on_startup)
+        .build()
+    )
     setup_application(app)
 
     logger.info("Бот запущен (polling).")
