@@ -16,6 +16,16 @@ TOPICS = [
     ("📝 Другое", "other"),
 ]
 
+# Ответственные заместители главы по темам (Распоряжение главы г.о. Коломна от 20.05.2024 №32)
+TOPIC_TO_DEPUTY = {
+    "land":        "Зам. главы ПОТИХА Кристина Игоревна (земельные отношения, земельный контроль)",
+    "trade":       "Зам. главы ПОТИХА К.И. (размещение НТО, аукцион) + ПАНЧИШНЫЙ Р.С. (торговая деятельность, схема НТО)",
+    "resettlement":"Зам. главы ПОТИХА Кристина Игоревна (расселение из аварийного жилья, муниципальный жилфонд)",
+    "services":    "Зам. главы ДМИТРИЕВА Ирина Викторовна (госуслуги, МФЦ, РПГУ МО)",
+    "property":    "Зам. главы ПОТИХА Кристина Игоревна (имущественные и земельные отношения)",
+    "other":       "1-й зам. главы ЛУБЯНОЙ Денис Борисович (общая координация)",
+}
+
 APPEAL_STEPS = ["name", "phone", "topic", "description", "confirm"]
 
 STEP_QUESTIONS = {
@@ -66,11 +76,13 @@ def format_appeal_preview(appeal_data: dict) -> str:
 
 
 def format_admin_message(appeal_data: dict, user) -> str:
-    topic = get_topic_label(appeal_data.get("topic", ""))
+    topic_code = appeal_data.get("topic", "other")
+    topic = get_topic_label(topic_code)
     name = appeal_data.get("name", "—")
     phone = appeal_data.get("phone", "—")
     description = appeal_data.get("description", "—")
     now = datetime.now(MOSCOW_TZ).strftime("%d.%m.%Y %H:%M МСК")
+    deputy = TOPIC_TO_DEPUTY.get(topic_code, TOPIC_TO_DEPUTY["other"])
 
     username = f"@{user.username}" if user.username else "нет username"
     tg_id = user.id
@@ -82,6 +94,8 @@ def format_admin_message(appeal_data: dict, user) -> str:
         f"📱 *Телефон:* {phone}\n"
         f"📂 *Тема:* {topic}\n"
         f"📋 *Суть:*\n{description}\n"
+        "━━━━━━━━━━━━━━━━━\n"
+        f"🎯 *Ответственный зам:* {deputy}\n"
         "━━━━━━━━━━━━━━━━━\n"
         f"🕐 {now}\n"
         f"📩 Telegram: {username} (ID: {tg_id})"
